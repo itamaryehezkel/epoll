@@ -1,0 +1,28 @@
+#!/bin/sh
+# ====================================================================
+#  ./compile -- build Backend_Vanila (static-file HTTPS server)
+#
+#      ./compile            optimised build  -> ./itl_server_epoll
+#      ./compile debug      ASan + UBSan     -> ./itl_server_epoll_debug
+#
+#  Only main.c goes on the gcc line: epoll_helpers.c and handlers.c are
+#  #included by it. Only needs OpenSSL 3 dev headers (libssl-dev) --
+#  no MySQL, no JSON library.
+# ====================================================================
+set -e
+cd "$(dirname "$0")"
+
+WARN="-Wall -Wextra -Wno-unused-parameter -Wno-sign-compare"
+LIBS="-lssl -lcrypto -pthread"
+
+if [ "$1" = "debug" ]; then
+    OUT=itl_server_epoll_debug
+    gcc -std=gnu11 -O1 -g -fsanitize=address,undefined -fno-omit-frame-pointer \
+        $WARN -pthread -o "$OUT" main.c $LIBS
+else
+    OUT=itl_server_epoll
+    gcc -std=gnu11 -O2 -march=native -pipe \
+        $WARN -pthread -o "$OUT" main.c $LIBS
+fi
+
+echo "built ./$OUT"
